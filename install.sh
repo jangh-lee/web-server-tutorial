@@ -2,14 +2,29 @@
 
 set -euo pipefail
 
+cleanup() {
+  if [[ -n "${TEMP_POLICY_RC_D:-}" && -f "${TEMP_POLICY_RC_D}" ]]; then
+    rm -f "${TEMP_POLICY_RC_D}"
+  fi
+}
+
+trap cleanup EXIT
+
 if [[ "${EUID}" -ne 0 ]]; then
   echo "Run this script as root: sudo bash install.sh"
   exit 1
 fi
 
 DEFAULT_SERVER_NAME="demo-node"
-read -r -p "Enter display name [${DEFAULT_SERVER_NAME}]: " SERVER_NAME
-SERVER_NAME="${SERVER_NAME:-$DEFAULT_SERVER_NAME}"
+
+if [[ -n "${1:-}" ]]; then
+  SERVER_NAME="$1"
+elif [[ -n "${SERVER_NAME:-}" ]]; then
+  SERVER_NAME="${SERVER_NAME}"
+else
+  read -r -p "Enter display name [${DEFAULT_SERVER_NAME}]: " SERVER_NAME </dev/tty
+  SERVER_NAME="${SERVER_NAME:-$DEFAULT_SERVER_NAME}"
+fi
 
 APP_DIR="/opt/lb-demo"
 WEB_ROOT="/var/www/lb-demo"
@@ -17,10 +32,22 @@ NGINX_CONF="/etc/nginx/sites-available/lb-demo"
 NGINX_LINK="/etc/nginx/sites-enabled/lb-demo"
 SYSTEMD_SERVICE="/etc/systemd/system/lb-demo-status.service"
 SYSTEMD_TIMER="/etc/systemd/system/lb-demo-status.timer"
+TEMP_POLICY_RC_D=""
 
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get update
+
+# Prevent package post-install hooks from auto-starting the default nginx config.
+if [[ ! -e /usr/sbin/policy-rc.d ]]; then
+  TEMP_POLICY_RC_D="/usr/sbin/policy-rc.d"
+  cat > "${TEMP_POLICY_RC_D}" <<'EOF'
+#!/bin/sh
+exit 101
+EOF
+  chmod 755 "${TEMP_POLICY_RC_D}"
+fi
+
 apt-get install -y nginx
 
 mkdir -p "${APP_DIR}" "${WEB_ROOT}"
@@ -35,7 +62,6 @@ echo "ok" > "${WEB_ROOT}/healthz"
 cat > "${NGINX_CONF}" <<'EOF'
 server {
     listen 80 default_server;
-    listen [::]:80 default_server;
 
     server_name _;
     root /var/www/lb-demo;
@@ -83,13 +109,18 @@ Unit=lb-demo-status.service
 WantedBy=timers.target
 EOF
 
-systemctl daemon-reload
-systemctl enable --now lb-demo-status.timer
-systemctl start lb-demo-status.service
-
 nginx -t
-systemctl enable nginx
-systemctl restart nginx
+
+if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+  systemctl daemon-reload
+  systemctl enable --now lb-demo-status.timer
+  systemctl start lb-demo-status.service
+  systemctl enable nginx
+  systemctl restart nginx
+else
+  "${APP_DIR}/update_status.sh"
+  service nginx restart
+fi
 
 echo
 echo "Installation complete."

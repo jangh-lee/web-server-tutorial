@@ -32,7 +32,14 @@ chmod +x install.sh
 sudo ./install.sh
 ```
 
-설치 중 이름을 입력하면 그 값이 페이지에 표시됩니다. 예를 들어 `node-1`, `node-2`, `node-3`처럼 각각 다르게 넣어두면 로드밸런서 실습에 편합니다.
+스크립트가 직접 이름을 입력받고, 그 값이 페이지에 표시됩니다. 예를 들어 `node-1`, `node-2`, `node-3`처럼 각각 다르게 넣어두면 로드밸런서 실습에 편합니다.
+
+원하면 인자나 환경변수로도 바로 줄 수 있습니다.
+
+```bash
+sudo ./install.sh node-1
+sudo SERVER_NAME=node-1 ./install.sh
+```
 
 ## 공개 리포 사용자용 복붙 스크립트
 
@@ -62,3 +69,4 @@ http://SERVER_IP/
 - `nginx`가 `/var/www/lb-demo`의 정적 파일을 서비스합니다.
 - `systemd timer`가 1분마다 `status.json`을 갱신합니다.
 - 메인 페이지는 `/status.json`을 읽어 날짜, 시간, 이름, 호스트명, IP 정보를 표시합니다.
+- IPv6를 지원하지 않는 Ubuntu 환경에서도 설치되도록, 패키지 설치 중 기본 `nginx` 자동 시작은 막고 사용자 설정으로 다시 기동합니다.
