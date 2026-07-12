@@ -211,6 +211,9 @@ button[type="submit"] {
   border-radius: 999px;
   margin-top: 4px;
   position: relative;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
 }
 
 .todo-item.done .todo-radio::after {
@@ -221,6 +224,13 @@ button[type="submit"] {
   font-size: 28px;
   font-weight: 700;
   transform: rotate(-12deg);
+}
+
+.todo-radio:hover,
+.todo-radio:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16);
 }
 
 .todo-main {
@@ -250,6 +260,7 @@ button[type="submit"] {
 .todo-actions {
   display: grid;
   gap: 8px;
+  align-self: center;
 }
 
 .ghost-button {
@@ -400,7 +411,7 @@ button[type="submit"] {
 
   .todo-actions {
     grid-column: 2;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .grid-two {

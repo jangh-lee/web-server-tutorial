@@ -77,7 +77,13 @@ function renderTodos() {
 
       return `
         <li class="todo-item ${doneClass}">
-          <div class="todo-radio" aria-hidden="true"></div>
+          <button
+            class="todo-radio"
+            data-toggle-id="${todo.id}"
+            type="button"
+            aria-label="${todo.done ? "할 일을 진행중으로 변경" : "할 일을 완료 처리"}"
+            title="${todo.done ? "진행중으로 변경" : "완료 처리"}"
+          ></button>
           <div class="todo-main" data-select-id="${todo.id}">
             <strong>${safeTitle}</strong>
             <div class="todo-meta">
@@ -88,7 +94,6 @@ function renderTodos() {
             <div class="todo-note">${safeNote || "메모 없음"}</div>
           </div>
           <div class="todo-actions">
-            <button class="ghost-button" data-toggle-id="${todo.id}" type="button">${todo.done ? "진행중으로" : "완료 처리"}</button>
             <button class="ghost-button danger" data-delete-id="${todo.id}" type="button">삭제</button>
           </div>
         </li>
