@@ -123,8 +123,7 @@ body {
   padding: 28px 26px 110px;
   position: relative;
   background:
-    linear-gradient(to bottom, transparent 0 80%, rgba(59, 130, 246, 0.18) 80%, rgba(59, 130, 246, 0.18) 80.5%, transparent 80.5%) bottom/100% 110px no-repeat,
-    repeating-linear-gradient(to right, transparent 0 42px, rgba(79, 74, 71, 0.2) 42px 44px);
+    linear-gradient(to bottom, transparent 0 80%, rgba(59, 130, 246, 0.18) 80%, rgba(59, 130, 246, 0.18) 80.5%, transparent 80.5%) bottom/100% 110px no-repeat;
 }
 
 .paper-title {
