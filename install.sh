@@ -19,11 +19,12 @@ DEFAULT_SERVER_NAME="demo-node"
 
 if [[ -n "${1:-}" ]]; then
   SERVER_NAME="$1"
+elif [[ -n "${userinput:-}" ]]; then
+  SERVER_NAME="${userinput}"
 elif [[ -n "${SERVER_NAME:-}" ]]; then
   SERVER_NAME="${SERVER_NAME}"
 else
-  read -r -p "Enter display name [${DEFAULT_SERVER_NAME}]: " SERVER_NAME </dev/tty
-  SERVER_NAME="${SERVER_NAME:-$DEFAULT_SERVER_NAME}"
+  SERVER_NAME="${DEFAULT_SERVER_NAME}"
 fi
 
 APP_DIR="/opt/lb-demo"
