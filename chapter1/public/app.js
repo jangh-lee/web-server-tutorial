@@ -10,7 +10,8 @@ const weatherButtons = document.querySelectorAll(".weather-button");
 const state = {
   todos: [],
   selectedId: null,
-  selectedWeather: "sunny"
+  selectedWeather: "sunny",
+  eventSource: null
 };
 
 function setToday() {
@@ -108,6 +109,18 @@ async function fetchTodos() {
     state.selectedId = state.todos[0].id;
     fillEditForm(state.todos[0]);
   }
+}
+
+function subscribeToTodoEvents() {
+  if (!window.EventSource) {
+    return;
+  }
+
+  state.eventSource = new EventSource("/api/events");
+
+  state.eventSource.addEventListener("todos-updated", async () => {
+    await fetchTodos();
+  });
 }
 
 async function createTodo(event) {
@@ -254,3 +267,4 @@ weatherButtons.forEach((button) => {
 
 setToday();
 fetchTodos();
+subscribeToTodoEvents();

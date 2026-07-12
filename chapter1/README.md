@@ -15,6 +15,8 @@ npm start
 - API 가이드: `http://localhost:3000/guide`
 - API 헬스체크: `http://localhost:3000/api/health`
 
+브라우저를 여러 개 열어두면 SSE로 변경 내용이 자동 반영됩니다.
+
 ## Ubuntu 서버 설치 스크립트
 
 서버에서 바로 실행하려면 [install.sh](/Users/james/Documents/공모전/web-server-tutorial/chapter1/install.sh)를 사용하면 됩니다.

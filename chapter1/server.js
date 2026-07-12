@@ -7,6 +7,7 @@ const port = process.env.PORT || 3000;
 const dataDir = path.join(__dirname, "data");
 const dataFile = path.join(dataDir, "todos.json");
 const publicDir = path.join(__dirname, "public");
+const eventClients = new Set();
 
 app.use(express.json());
 app.use(express.static(publicDir));
@@ -90,8 +91,42 @@ function createId() {
   return `todo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function broadcastTodoChange(type, todoId) {
+  const payload = JSON.stringify({
+    type,
+    todoId,
+    timestamp: new Date().toISOString()
+  });
+
+  for (const client of eventClients) {
+    client.write(`event: todos-updated\n`);
+    client.write(`data: ${payload}\n\n`);
+  }
+}
+
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", service: "chapter1-api-server" });
+});
+
+app.get("/api/events", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  res.write(`event: connected\n`);
+  res.write(`data: {"status":"connected"}\n\n`);
+
+  eventClients.add(res);
+
+  const keepAliveTimer = setInterval(() => {
+    res.write(`: keep-alive\n\n`);
+  }, 25000);
+
+  req.on("close", () => {
+    clearInterval(keepAliveTimer);
+    eventClients.delete(res);
+  });
 });
 
 app.get("/api/todos", async (req, res, next) => {
@@ -137,6 +172,7 @@ app.post("/api/todos", async (req, res, next) => {
 
     todos.unshift(todo);
     await writeTodos(todos);
+    broadcastTodoChange("created", todo.id);
     res.status(201).json(todo);
   } catch (error) {
     next(error);
@@ -166,6 +202,7 @@ app.put("/api/todos/:id", async (req, res, next) => {
 
     todos[index] = updatedTodo;
     await writeTodos(todos);
+    broadcastTodoChange("replaced", updatedTodo.id);
     res.json(updatedTodo);
   } catch (error) {
     next(error);
@@ -193,6 +230,7 @@ app.patch("/api/todos/:id", async (req, res, next) => {
 
     todos[index] = updatedTodo;
     await writeTodos(todos);
+    broadcastTodoChange("updated", updatedTodo.id);
     res.json(updatedTodo);
   } catch (error) {
     next(error);
@@ -209,6 +247,7 @@ app.delete("/api/todos/:id", async (req, res, next) => {
     }
 
     await writeTodos(remainingTodos);
+    broadcastTodoChange("deleted", req.params.id);
     res.status(204).send();
   } catch (error) {
     next(error);
