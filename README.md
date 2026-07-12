@@ -1,88 +1,45 @@
-# NGINX Load Balancer Lab
+# Web Server Tutorial
 
-Ubuntu 서버에서 `nginx` 기반으로 아주 단순한 백엔드 노드를 띄우기 위한 실습용 예제입니다.
+간단한 웹 서버 실습을 두 단계로 나눠서 따라갈 수 있도록 구성한 튜토리얼 리포지토리입니다.
 
-로드밸런서 뒤에 여러 대를 붙여두고 새로고침하거나 트래픽을 분산시키면, 어떤 백엔드가 응답했는지 바로 확인할 수 있습니다.
+## Chapter 1. Postman & API Server
 
-## 화면에 표시되는 정보
+[`chapter1`](/Users/james/Documents/공모전/web-server-tutorial/chapter1)에는 투두리스트 느낌의 메인 사이트와 CRUD 실습용 API 서버가 들어 있습니다.
 
-- 날짜
-- 시간
-- 설치 시 입력한 이름
-- 호스트명
-- IP 정보
+포함 내용:
 
-## 헬스체크 경로
+- 브라우저에서 바로 보는 투두리스트 UI
+- `GET`, `POST`, `PUT`, `PATCH`, `DELETE` 실습이 가능한 REST API
+- Postman이나 `curl`로 바로 테스트 가능한 JSON 응답
 
-- `GET /healthz`
-
-## 구성 파일
-
-- `install.sh`: Ubuntu 서버 설치 스크립트
-- `update_status.sh`: 상태 JSON 갱신 스크립트
-- `templates/index.html.template`: 정적 HTML 템플릿
-
-## 설치 방법
-
-서버에서 아래처럼 실행하면 됩니다.
+실행 방법:
 
 ```bash
-userinput="node-1"
-cd /path/to/repo
-chmod +x install.sh
-sudo userinput="$userinput" ./install.sh
+cd chapter1
+npm install
+npm start
 ```
 
-설치 과정에서 추가 입력은 받지 않습니다. `userinput` 값이 그대로 Display Name에 표시됩니다. 예를 들어 `node-1`, `node-2`, `node-3`처럼 각각 다르게 넣어두면 로드밸런서 실습에 편합니다.
+접속 주소:
 
-원하면 인자나 `SERVER_NAME` 환경변수로도 줄 수 있지만, 가장 단순한 방식은 `userinput` 변수 사용입니다.
+- 웹 페이지: `http://localhost:3000`
+- API 헬스체크: `http://localhost:3000/api/health`
+- 투두 목록: `http://localhost:3000/api/todos`
 
-```bash
-sudo ./install.sh node-1
-sudo SERVER_NAME=node-1 ./install.sh
-```
+## Chapter 2. Load Balancer
 
-## 공개 리포 사용자용 복붙 스크립트
+[`chapter2`](/Users/james/Documents/공모전/web-server-tutorial/chapter2)는 Ubuntu 서버에 `nginx` 기반의 단순 백엔드 노드를 배포해서 로드밸런서 분산을 실습하는 예제입니다.
 
-```bash
-userinput="node-1"
-sudo apt-get update && sudo apt-get install -y git
-git clone https://github.com/jangh-lee/nginx-loadbalancer-lab.git
-cd nginx-loadbalancer-lab
-chmod +x install.sh
-sudo userinput="$userinput" ./install.sh
-```
+포함 내용:
 
-## 설치 후 확인
+- 설치 시 지정한 이름 표시
+- 날짜, 시간, 호스트명, IP 정보 표시
+- 헬스체크 경로 `/healthz`
+- `hostname` 기준 100회 호출 분산 테스트 예시
 
-```bash
-curl http://localhost/healthz
-curl http://localhost/status.json
-```
+실행 가이드는 [`chapter2/README.md`](/Users/james/Documents/공모전/web-server-tutorial/chapter2/README.md)에 정리되어 있습니다.
 
-브라우저에서는 아래 주소로 접속합니다.
+## 추천 흐름
 
-```text
-http://SERVER_IP/
-```
-
-## 로드밸런서 100회 호출 테스트
-
-로드밸런서가 어떤 백엔드로 얼마나 분산했는지 `hostname` 기준으로 집계하려면 아래처럼 실행하면 됩니다.
-
-```bash
-LB_URL="http://YOUR_LOAD_BALANCER_URL"
-
-for i in $(seq 1 100); do
-  curl -s "$LB_URL/status.json" | sed -n 's/.*"hostname"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
-done | sort | uniq -c
-```
-
-`grep -P`를 지원하지 않는 환경도 있어서, 예제는 `sed` 기준으로 넣었습니다.
-
-## 동작 방식
-
-- `nginx`가 `/var/www/lb-demo`의 정적 파일을 서비스합니다.
-- `systemd timer`가 1분마다 `status.json`을 갱신합니다.
-- 메인 페이지는 `/status.json`을 읽어 날짜, 시간, 이름, 호스트명, IP 정보를 표시합니다.
-- IPv6를 지원하지 않는 Ubuntu 환경에서도 설치되도록, 패키지 설치 중 기본 `nginx` 자동 시작은 막고 사용자 설정으로 다시 기동합니다.
+1. `chapter1`에서 API와 Postman CRUD 흐름을 익힙니다.
+2. `chapter2`에서 여러 서버 노드를 띄운 뒤 로드밸런서 분산을 확인합니다.
