@@ -215,6 +215,10 @@ app.delete("/api/todos/:id", async (req, res, next) => {
   }
 });
 
+app.get("/guide", (req, res) => {
+  res.sendFile(path.join(publicDir, "guide.html"));
+});
+
 app.get("*", (req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });

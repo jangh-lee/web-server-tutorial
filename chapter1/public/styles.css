@@ -339,6 +339,15 @@ button[type="submit"] {
   white-space: pre-wrap;
 }
 
+.guide-link {
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.guide-link:hover {
+  color: #1e3a8a;
+}
+
 @media (max-width: 980px) {
   .layout {
     grid-template-columns: 1fr;

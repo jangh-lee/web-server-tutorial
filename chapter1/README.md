@@ -12,6 +12,7 @@ npm start
 기본 주소:
 
 - 메인 페이지: `http://localhost:3000`
+- API 가이드: `http://localhost:3000/guide`
 - API 헬스체크: `http://localhost:3000/api/health`
 
 ## API 목록
@@ -22,6 +23,8 @@ npm start
 - `PUT /api/todos/:id`: 전체 수정
 - `PATCH /api/todos/:id`: 일부 수정
 - `DELETE /api/todos/:id`: 삭제
+
+학생용 요청 예시를 한 화면에서 보려면 `/guide` 페이지를 열면 됩니다.
 
 ## POST 예시
 
