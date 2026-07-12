@@ -66,6 +66,20 @@ curl http://localhost/status.json
 http://SERVER_IP/
 ```
 
+## 로드밸런서 100회 호출 테스트
+
+로드밸런서가 어떤 백엔드로 얼마나 분산했는지 `hostname` 기준으로 집계하려면 아래처럼 실행하면 됩니다.
+
+```bash
+LB_URL="http://YOUR_LOAD_BALANCER_URL"
+
+for i in $(seq 1 100); do
+  curl -s "$LB_URL/status.json" | sed -n 's/.*"hostname"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
+done | sort | uniq -c
+```
+
+`grep -P`를 지원하지 않는 환경도 있어서, 예제는 `sed` 기준으로 넣었습니다.
+
 ## 동작 방식
 
 - `nginx`가 `/var/www/lb-demo`의 정적 파일을 서비스합니다.
