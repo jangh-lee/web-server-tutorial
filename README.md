@@ -38,8 +38,8 @@ sudo ./install.sh
 
 ```bash
 sudo apt-get update && sudo apt-get install -y git
-git clone <YOUR_PUBLIC_GITHUB_REPO_URL>
-cd <YOUR_REPO_DIRECTORY>
+git clone https://github.com/jangh-lee/nginx-loadbalancer-lab.git
+cd nginx-loadbalancer-lab
 chmod +x install.sh
 sudo ./install.sh
 ```
