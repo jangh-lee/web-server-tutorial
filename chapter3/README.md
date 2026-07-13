@@ -28,6 +28,9 @@
 - `DB_USER`
 - `DB_PASSWORD`
 
+주소 값은 프라이빗 IP, 퍼블릭 IP, DNS 중 실제로 상대 서버에서 도달 가능한 값이면 어느 쪽이든 사용할 수 있습니다.
+같은 VPC 내부 통신이면 보통 프라이빗 IP를 권장합니다.
+
 ## 2. 네트워크 구성
 
 권장 구조:
@@ -119,13 +122,13 @@ sudo ./install-db.sh
 ### 백엔드 서버 `.env` 예시
 
 ```env
-PORT=4000
-FRONTEND_ORIGIN=http://10.0.0.10
-DB_HOST=10.0.1.30
-DB_PORT=3306
-DB_NAME=chapter3_board
-DB_USER=chapter3_user
-DB_PASSWORD=ChangeThisPassword123!
+PORT="4000"
+FRONTEND_ORIGIN="http://10.0.0.10"
+DB_HOST="10.0.1.30"
+DB_PORT="3306"
+DB_NAME="chapter3_board"
+DB_USER="chapter3_user"
+DB_PASSWORD="ChangeThisPassword123!"
 ```
 
 ### 백엔드 서버
@@ -145,9 +148,9 @@ sudo ./install-backend.sh
 ### 웹서버 `.env` 예시
 
 ```env
-SITE_BASE_URL=http://10.0.0.10
-BACKEND_BASE_URL=http://10.0.1.25:4000
-SITE_TITLE=DevForum Practice Board
+SITE_BASE_URL="http://10.0.0.10"
+BACKEND_BASE_URL="http://10.0.1.25:4000"
+SITE_TITLE="DevForum Practice Board"
 ```
 
 ### 웹서버

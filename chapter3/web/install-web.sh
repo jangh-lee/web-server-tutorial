@@ -21,17 +21,17 @@ ensure_env_file() {
 
   if [[ -n "${SITE_BASE_URL:-}" && -n "${BACKEND_BASE_URL:-}" ]]; then
     cat > "${SCRIPT_DIR}/.env" <<EOF
-SITE_BASE_URL=${SITE_BASE_URL}
-BACKEND_BASE_URL=${BACKEND_BASE_URL}
-SITE_TITLE=${SITE_TITLE:-DevForum Practice Board}
+SITE_BASE_URL="${SITE_BASE_URL}"
+BACKEND_BASE_URL="${BACKEND_BASE_URL}"
+SITE_TITLE="${SITE_TITLE:-DevForum Practice Board}"
 EOF
     return
   fi
 
   cat > "${SCRIPT_DIR}/.env" <<'EOF'
-SITE_BASE_URL=http://WEB_SERVER_PUBLIC_IP
-BACKEND_BASE_URL=http://BACKEND_SERVER_PRIVATE_OR_PUBLIC_IP:4000
-SITE_TITLE=DevForum Practice Board
+SITE_BASE_URL="http://WEB_SERVER_PUBLIC_IP"
+BACKEND_BASE_URL="http://BACKEND_SERVER_PRIVATE_OR_PUBLIC_IP:4000"
+SITE_TITLE="DevForum Practice Board"
 EOF
   echo "Created ${SCRIPT_DIR}/.env template. Fill it out and run again."
   exit 1
