@@ -2,6 +2,14 @@
 
 set -euo pipefail
 
+cleanup() {
+  if [[ -n "${TEMP_POLICY_RC_D:-}" && -f "${TEMP_POLICY_RC_D}" ]]; then
+    rm -f "${TEMP_POLICY_RC_D}"
+  fi
+}
+
+trap cleanup EXIT
+
 if [[ "${EUID}" -ne 0 ]]; then
   echo "Run this script as root: sudo bash install-web.sh"
   exit 1
@@ -13,6 +21,7 @@ WEB_ROOT="/var/www/chapter3-web"
 NGINX_CONF="/etc/nginx/sites-available/chapter3-web"
 NGINX_LINK="/etc/nginx/sites-enabled/chapter3-web"
 RAW_BASE="https://raw.githubusercontent.com/jangh-lee/web-server-tutorial/main/chapter3/web/app"
+TEMP_POLICY_RC_D=""
 
 ensure_env_file() {
   if [[ -f "${SCRIPT_DIR}/.env" ]]; then
@@ -60,6 +69,17 @@ load_env
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
+
+# Prevent package post-install hooks from auto-starting the default nginx config.
+if [[ ! -e /usr/sbin/policy-rc.d ]]; then
+  TEMP_POLICY_RC_D="/usr/sbin/policy-rc.d"
+  cat > "${TEMP_POLICY_RC_D}" <<'EOF'
+#!/bin/sh
+exit 101
+EOF
+  chmod 755 "${TEMP_POLICY_RC_D}"
+fi
+
 apt-get install -y nginx curl
 
 mkdir -p "${APP_DIR}" "${WEB_ROOT}"
@@ -98,8 +118,13 @@ rm -f /etc/nginx/sites-enabled/default
 ln -sf "${NGINX_CONF}" "${NGINX_LINK}"
 
 nginx -t
-systemctl enable nginx
-systemctl restart nginx
+
+if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+  systemctl enable nginx
+  systemctl restart nginx
+else
+  service nginx restart
+fi
 
 echo
 echo "Web server installation complete."
