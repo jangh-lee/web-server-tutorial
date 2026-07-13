@@ -39,7 +39,21 @@ npm start
 
 실행 가이드는 [`chapter2/README.md`](/Users/james/Documents/공모전/web-server-tutorial/chapter2/README.md)에 정리되어 있습니다.
 
+## Chapter 3. Multi-Tier Board
+
+[`chapter3`](/Users/james/Documents/공모전/web-server-tutorial/chapter3)는 네이버클라우드 기준 3계층 게시판 실습입니다.
+
+포함 내용:
+
+- 웹서버 설치 스크립트
+- 백엔드 서버 설치 스크립트
+- DB 서버 설치 스크립트
+- `.env` 기반 서버 간 엔드포인트 연결
+- 비로그인 게시글 작성/삭제 게시판
+- ACG와 네트워크 구성 가이드
+
 ## 추천 흐름
 
 1. `chapter1`에서 API와 Postman CRUD 흐름을 익힙니다.
 2. `chapter2`에서 여러 서버 노드를 띄운 뒤 로드밸런서 분산을 확인합니다.
+3. `chapter3`에서 웹, 백엔드, DB를 나눠 3계층 구조를 실습합니다.
