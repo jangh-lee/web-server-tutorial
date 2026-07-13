@@ -71,7 +71,22 @@ DB 서버 (mariadb)
 - [backend](/Users/james/Documents/공모전/web-server-tutorial/chapter3/backend)
 - [db](/Users/james/Documents/공모전/web-server-tutorial/chapter3/db)
 
-## 6. 빠른 실행
+## 6. 서버 접속 직후 바로 실행
+
+이미 리포를 받은 적이 없다면:
+
+```bash
+sudo apt-get update && sudo apt-get install -y git
+git clone https://github.com/jangh-lee/web-server-tutorial.git
+cd web-server-tutorial
+```
+
+이미 리포를 받아둔 서버라면:
+
+```bash
+cd web-server-tutorial
+git pull origin main
+```
 
 스크립트는 `.env`가 없으면 같은 폴더에 템플릿 `.env`를 자동으로 만들어주고 종료합니다.
 즉, 스크립트만 서버에 복사해 넣어도 1회 실행 후 `.env`를 채우고 다시 실행하는 방식으로 사용할 수 있습니다.
@@ -90,10 +105,14 @@ DB_BIND_ADDRESS=0.0.0.0
 ### DB 서버
 
 ```bash
+sudo apt-get update && sudo apt-get install -y git
+git clone https://github.com/jangh-lee/web-server-tutorial.git || true
+cd web-server-tutorial
+git pull origin main
 cd chapter3/db
-cp .env.example .env
-vi .env
 chmod +x install-db.sh
+sudo ./install-db.sh
+# .env가 자동 생성되면 값 수정 후 다시
 sudo ./install-db.sh
 ```
 
@@ -112,10 +131,14 @@ DB_PASSWORD=ChangeThisPassword123!
 ### 백엔드 서버
 
 ```bash
+sudo apt-get update && sudo apt-get install -y git
+git clone https://github.com/jangh-lee/web-server-tutorial.git || true
+cd web-server-tutorial
+git pull origin main
 cd chapter3/backend
-cp .env.example .env
-vi .env
 chmod +x install-backend.sh
+sudo ./install-backend.sh
+# .env가 자동 생성되면 값 수정 후 다시
 sudo ./install-backend.sh
 ```
 
@@ -130,10 +153,14 @@ SITE_TITLE=DevForum Practice Board
 ### 웹서버
 
 ```bash
+sudo apt-get update && sudo apt-get install -y git
+git clone https://github.com/jangh-lee/web-server-tutorial.git || true
+cd web-server-tutorial
+git pull origin main
 cd chapter3/web
-cp .env.example .env
-vi .env
 chmod +x install-web.sh
+sudo ./install-web.sh
+# .env가 자동 생성되면 값 수정 후 다시
 sudo ./install-web.sh
 ```
 
