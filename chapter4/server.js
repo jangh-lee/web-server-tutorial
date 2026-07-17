@@ -10,7 +10,7 @@ const port = Number(process.env.PORT || 4100);
 const publicDir = path.join(__dirname, "public");
 const configPath = path.join(__dirname, "data", "prompt-config.json");
 
-app.use(express.json({ limit: "25mb" }));
+app.use(express.json({ limit: "1mb" }));
 app.use(express.static(publicDir));
 
 function requireEnv(name) {
@@ -96,85 +96,10 @@ function makeMockFortune(payload) {
   };
 }
 
-function makeMockCardSpec(fortune) {
-  return {
-    cardTitle: "The Gentle Star",
-    subtitle: fortune.luckyDirection,
-    accentColor: "#4f8df7",
-    backgroundColor: "#f9fcff",
-    frameColor: "#274690",
-    symbols: ["star", "moon", "spark"],
-    messageTop: fortune.keywords?.[0] || "balance",
-    messageBottom: fortune.luckyColor || "hope"
-  };
-}
-
-function renderTarotSvg(spec) {
-  const symbols = Array.isArray(spec.symbols) ? spec.symbols.slice(0, 3) : ["star", "moon", "spark"];
-  const symbolMap = {
-    star: "✦",
-    moon: "☾",
-    sun: "☼",
-    ribbon: "❦",
-    spark: "✧",
-    heart: "♡",
-    cloud: "☁"
-  };
-  const icon1 = symbolMap[symbols[0]] || "✦";
-  const icon2 = symbolMap[symbols[1]] || "☾";
-  const icon3 = symbolMap[symbols[2]] || "✧";
-  const backgroundColor = spec.backgroundColor || "#f9fcff";
-  const accentColor = spec.accentColor || "#4f8df7";
-  const frameColor = spec.frameColor || "#274690";
-  const cardTitle = String(spec.cardTitle || "Tarot Card");
-  const subtitle = String(spec.subtitle || "");
-  const messageTop = String(spec.messageTop || "");
-  const messageBottom = String(spec.messageBottom || "");
-
-  return `
-  <svg xmlns="http://www.w3.org/2000/svg" width="720" height="1080" viewBox="0 0 720 1080">
-    <defs>
-      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="${backgroundColor}" />
-        <stop offset="100%" stop-color="#ffffff" />
-      </linearGradient>
-    </defs>
-    <rect width="720" height="1080" rx="38" fill="url(#bg)" />
-    <rect x="28" y="28" width="664" height="1024" rx="32" fill="none" stroke="${frameColor}" stroke-width="8"/>
-    <circle cx="360" cy="260" r="120" fill="${accentColor}" opacity="0.15"/>
-    <circle cx="360" cy="260" r="88" fill="none" stroke="${accentColor}" stroke-width="5"/>
-    <text x="360" y="220" text-anchor="middle" font-size="52" fill="${frameColor}" font-family="Georgia, serif">${icon1}</text>
-    <text x="300" y="295" text-anchor="middle" font-size="62" fill="${accentColor}" font-family="Georgia, serif">${icon2}</text>
-    <text x="420" y="295" text-anchor="middle" font-size="52" fill="${frameColor}" font-family="Georgia, serif">${icon3}</text>
-    <text x="360" y="430" text-anchor="middle" font-size="24" letter-spacing="8" fill="${accentColor}" font-family="Arial, sans-serif">TODAY'S CARD</text>
-    <text x="360" y="495" text-anchor="middle" font-size="56" fill="${frameColor}" font-family="Georgia, serif">${cardTitle}</text>
-    <text x="360" y="542" text-anchor="middle" font-size="28" fill="${accentColor}" font-family="Arial, sans-serif">${subtitle}</text>
-    <line x1="140" y1="620" x2="580" y2="620" stroke="${frameColor}" stroke-width="2" opacity="0.25"/>
-    <text x="360" y="700" text-anchor="middle" font-size="30" fill="${frameColor}" font-family="Arial, sans-serif">${messageTop}</text>
-    <text x="360" y="780" text-anchor="middle" font-size="22" fill="${accentColor}" font-family="Arial, sans-serif">${messageBottom}</text>
-    <rect x="170" y="845" width="380" height="120" rx="26" fill="${accentColor}" opacity="0.1"/>
-    <text x="360" y="900" text-anchor="middle" font-size="26" fill="${frameColor}" font-family="Arial, sans-serif">Fortune flows gently when your steps stay steady.</text>
-  </svg>`;
-}
-
-function svgToDataUrl(svg) {
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
-}
-
-function makeVisionMock() {
-  return {
-    summary: "파스텔 톤의 카드형 일러스트가 보이며, 중심에는 별과 달 상징이 배치되어 있습니다.",
-    mood: "차분하고 포근한 분위기",
-    mainObjects: ["타로 카드 프레임", "별", "달"],
-    colorPalette: ["하늘색", "아이보리", "남색"],
-    tarotInterpretation: "감정의 균형과 직관을 믿으라는 메시지를 전하는 카드처럼 보입니다."
-  };
-}
-
-app.get("/api/health", async (req, res) => {
+app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    service: "chapter4-demo",
+    service: "chapter4-fortune-demo",
     demoMode: isDemoMode()
   });
 });
@@ -185,8 +110,7 @@ app.get("/api/admin/prompts", async (req, res, next) => {
       return res.status(403).json({ message: "Invalid admin password" });
     }
 
-    const config = await readPromptConfig();
-    res.json(config);
+    res.json(await readPromptConfig());
   } catch (error) {
     next(error);
   }
@@ -200,11 +124,7 @@ app.put("/api/admin/prompts", async (req, res, next) => {
 
     const nextConfig = {
       fortuneSystemPrompt: String(req.body.fortuneSystemPrompt || ""),
-      fortuneUserPromptTemplate: String(req.body.fortuneUserPromptTemplate || ""),
-      tarotSystemPrompt: String(req.body.tarotSystemPrompt || ""),
-      tarotUserPromptTemplate: String(req.body.tarotUserPromptTemplate || ""),
-      visionSystemPrompt: String(req.body.visionSystemPrompt || ""),
-      visionUserPromptTemplate: String(req.body.visionUserPromptTemplate || "")
+      fortuneUserPromptTemplate: String(req.body.fortuneUserPromptTemplate || "")
     };
 
     await writePromptConfig(nextConfig);
@@ -243,94 +163,7 @@ app.post("/api/fortune", async (req, res, next) => {
       ]
     });
 
-    const result = extractJson(content);
-    res.json({ ...result, source: "clova" });
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.post("/api/tarot-card", async (req, res, next) => {
-  try {
-    const fortune = req.body.fortune;
-    if (!fortune || !fortune.title || !fortune.summary) {
-      return res.status(400).json({ message: "fortune.title and fortune.summary are required" });
-    }
-
-    let spec;
-    if (isDemoMode()) {
-      spec = makeMockCardSpec(fortune);
-    } else {
-      const prompts = await readPromptConfig();
-      const userPrompt = applyTemplate(prompts.tarotUserPromptTemplate, {
-        fortuneTitle: fortune.title,
-        fortuneSummary: fortune.summary,
-        fortuneStrength: fortune.strength || "",
-        fortuneCaution: fortune.caution || "",
-        fortuneLuckyColor: fortune.luckyColor || "",
-        fortuneLuckyDirection: fortune.luckyDirection || ""
-      });
-      const content = await callClovaChat({
-        modelName: requireEnv("CLOVA_TEXT_MODEL") || "HCX-DASH-002",
-        messages: [
-          { role: "system", content: prompts.tarotSystemPrompt },
-          { role: "user", content: userPrompt }
-        ]
-      });
-      spec = extractJson(content);
-    }
-
-    const svg = renderTarotSvg(spec);
-    res.json({
-      spec,
-      imageDataUrl: svgToDataUrl(svg),
-      svg,
-      source: isDemoMode() ? "mock-render" : "clova-render"
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.post("/api/vision-read", async (req, res, next) => {
-  try {
-    const { imageUrl, imageBase64, mimeType } = req.body;
-    if (!imageUrl && !imageBase64) {
-      return res.status(400).json({ message: "imageUrl or imageBase64 is required" });
-    }
-
-    if (isDemoMode()) {
-      return res.json({ ...makeVisionMock(), source: "mock" });
-    }
-
-    const prompts = await readPromptConfig();
-    const contentPayload = [];
-    if (imageUrl) {
-      contentPayload.push({
-        type: "image_url",
-        imageUrl: { url: imageUrl }
-      });
-    } else {
-      contentPayload.push({
-        type: "image_url",
-        dataUri: { data: imageBase64.replace(/^data:[^;]+;base64,/, "") }
-      });
-    }
-    contentPayload.push({
-      type: "text",
-      text: prompts.visionUserPromptTemplate
-    });
-
-    const content = await callClovaChat({
-      modelName: requireEnv("CLOVA_VISION_MODEL") || "HCX-005",
-      messages: [
-        { role: "system", content: prompts.visionSystemPrompt },
-        { role: "user", content: contentPayload }
-      ]
-    });
-
-    const result = extractJson(content);
-    res.json({ ...result, source: "clova-vision", mimeType: mimeType || null });
+    res.json({ ...extractJson(content), source: "clova" });
   } catch (error) {
     next(error);
   }
@@ -346,5 +179,5 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(port, () => {
-  console.log(`Chapter 4 demo running on http://localhost:${port}`);
+  console.log(`Chapter 4 fortune demo running on http://localhost:${port}`);
 });

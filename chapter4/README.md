@@ -1,21 +1,14 @@
-# Chapter 4. AI Fortune & Tarot Studio
+# Chapter 4. AI Fortune Studio
 
 네이버 클라우드의 CLOVA Studio API를 이용해 다음 기능을 시연하는 데모입니다.
 
 - 사주/오늘의 운세 텍스트 생성
-- 운세를 바탕으로 타로 카드풍 이미지 생성
-- 이미지 URL 또는 업로드 파일 읽기
-- 시스템 프롬프트 관리
+- 운세 시스템 프롬프트 관리
+- API 응답 대기 중 로딩 UI
 
 ## 구현 방향
 
-공식 문서 기준으로 Chat Completions v3는 텍스트 생성과 이미지 이해를 지원합니다. 따라서 이 챕터는:
-
-- 운세 텍스트: CLOVA Studio Chat Completions v3 호출
-- 그림 읽기: HCX-005 비전 모델 호출
-- 카드 이미지 생성: 텍스트 모델이 카드 사양 JSON 생성 → 서버가 SVG 카드 이미지로 렌더링
-
-방식으로 구성했습니다.
+공식 Chat Completions v3 API를 호출해 생년월일시를 바탕으로 오늘의 운세를 JSON 형식으로 생성합니다.
 
 ## 공식 문서
 
@@ -61,7 +54,6 @@ PORT=4100
 CLOVA_BASE_URL="https://clovastudio.stream.ntruss.com"
 CLOVA_API_KEY="nv-xxxx"
 CLOVA_TEXT_MODEL="HCX-DASH-002"
-CLOVA_VISION_MODEL="HCX-005"
 ADMIN_PASSWORD="change-me"
 DEMO_MODE_IF_NO_KEY="true"
 ```
@@ -74,16 +66,10 @@ DEMO_MODE_IF_NO_KEY="true"
 - 양력/음력 선택
 - 오늘의 운세 텍스트 응답
 
-### 2. 그림 생성 / 읽기
-
-- 운세 요약을 바탕으로 타로 카드풍 SVG 생성
-- 이미지 URL 또는 업로드 파일을 비전 모델로 읽기
-
-### 3. 프롬프트 관리자
+### 2. 프롬프트 관리자
 
 - 운세 시스템 프롬프트
-- 카드 생성 시스템 프롬프트
-- 이미지 읽기 시스템 프롬프트
+- 운세 사용자 프롬프트 템플릿
 
 ## 참고
 

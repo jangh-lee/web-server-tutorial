@@ -3,24 +3,14 @@ const navLinks = document.querySelectorAll(".nav-link");
 const healthBadge = document.getElementById("healthBadge");
 
 const fortuneForm = document.getElementById("fortuneForm");
+const fortuneSubmitButton = fortuneForm.querySelector('button[type="submit"]');
+const fortuneLoading = document.getElementById("fortuneLoading");
 const fortuneEmpty = document.getElementById("fortuneEmpty");
 const fortuneResult = document.getElementById("fortuneResult");
-
-const cardForm = document.getElementById("cardForm");
-const cardPreviewEmpty = document.getElementById("cardPreviewEmpty");
-const cardPreview = document.getElementById("cardPreview");
-const cardImage = document.getElementById("cardImage");
-const cardSpec = document.getElementById("cardSpec");
-
-const visionForm = document.getElementById("visionForm");
-const visionEmpty = document.getElementById("visionEmpty");
-const visionResult = document.getElementById("visionResult");
 
 const adminLoadForm = document.getElementById("adminLoadForm");
 const adminSaveForm = document.getElementById("adminSaveForm");
 const adminPassword = document.getElementById("adminPassword");
-
-let latestFortune = null;
 
 function activateView(target) {
   navLinks.forEach((button) => {
@@ -43,7 +33,6 @@ async function requestJson(url, options = {}) {
 }
 
 function renderFortune(data) {
-  latestFortune = data;
   fortuneEmpty.hidden = true;
   fortuneResult.hidden = false;
   fortuneResult.innerHTML = `
@@ -61,12 +50,6 @@ function renderFortune(data) {
     <div class="fortune-box"><strong>키워드</strong><div>${(data.keywords || []).join(", ")}</div></div>
   `;
 
-  document.getElementById("cardTitleInput").value = data.title || "";
-  document.getElementById("cardSummaryInput").value = data.summary || "";
-  document.getElementById("cardStrengthInput").value = data.strength || "";
-  document.getElementById("cardCautionInput").value = data.caution || "";
-  document.getElementById("cardColorInput").value = data.luckyColor || "";
-  document.getElementById("cardDirectionInput").value = data.luckyDirection || "";
 }
 
 navLinks.forEach((button) => {
@@ -75,83 +58,35 @@ navLinks.forEach((button) => {
 
 fortuneForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  fortuneLoading.hidden = false;
+  fortuneEmpty.hidden = true;
+  fortuneResult.hidden = true;
+  fortuneSubmitButton.disabled = true;
+  fortuneSubmitButton.textContent = "운세 확인 중...";
+
   try {
-    const data = await requestJson("/api/fortune", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        birthYear: document.getElementById("birthYear").value,
-        birthMonth: document.getElementById("birthMonth").value,
-        birthDay: document.getElementById("birthDay").value,
-        birthHour: document.getElementById("birthHour").value,
-        calendarType: document.getElementById("calendarType").value
-      })
-    });
+    const [data] = await Promise.all([
+      requestJson("/api/fortune", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          birthYear: document.getElementById("birthYear").value,
+          birthMonth: document.getElementById("birthMonth").value,
+          birthDay: document.getElementById("birthDay").value,
+          birthHour: document.getElementById("birthHour").value,
+          calendarType: document.getElementById("calendarType").value
+        })
+      }),
+      new Promise((resolve) => setTimeout(resolve, 650))
+    ]);
     renderFortune(data);
   } catch (error) {
     alert(error.message);
-  }
-});
-
-cardForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  try {
-    const payload = {
-      fortune: {
-        title: document.getElementById("cardTitleInput").value,
-        summary: document.getElementById("cardSummaryInput").value,
-        strength: document.getElementById("cardStrengthInput").value,
-        caution: document.getElementById("cardCautionInput").value,
-        luckyColor: document.getElementById("cardColorInput").value,
-        luckyDirection: document.getElementById("cardDirectionInput").value
-      }
-    };
-    const data = await requestJson("/api/tarot-card", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    cardPreviewEmpty.hidden = true;
-    cardPreview.hidden = false;
-    cardImage.src = data.imageDataUrl;
-    cardSpec.textContent = JSON.stringify(data.spec, null, 2);
-  } catch (error) {
-    alert(error.message);
-  }
-});
-
-visionForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  try {
-    const file = document.getElementById("visionFile").files[0];
-    let imageBase64 = "";
-    let mimeType = "";
-
-    if (file) {
-      imageBase64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      mimeType = file.type;
-    }
-
-    const data = await requestJson("/api/vision-read", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        imageUrl: document.getElementById("visionImageUrl").value,
-        imageBase64,
-        mimeType
-      })
-    });
-
-    visionEmpty.hidden = true;
-    visionResult.hidden = false;
-    visionResult.textContent = JSON.stringify(data, null, 2);
-  } catch (error) {
-    alert(error.message);
+    fortuneEmpty.hidden = false;
+  } finally {
+    fortuneLoading.hidden = true;
+    fortuneSubmitButton.disabled = false;
+    fortuneSubmitButton.textContent = "오늘의 운세 보기";
   }
 });
 
@@ -181,11 +116,7 @@ adminSaveForm.addEventListener("submit", async (event) => {
       body: JSON.stringify({
         password: adminPassword.value,
         fortuneSystemPrompt: document.getElementById("fortuneSystemPrompt").value,
-        fortuneUserPromptTemplate: document.getElementById("fortuneUserPromptTemplate").value,
-        tarotSystemPrompt: document.getElementById("tarotSystemPrompt").value,
-        tarotUserPromptTemplate: document.getElementById("tarotUserPromptTemplate").value,
-        visionSystemPrompt: document.getElementById("visionSystemPrompt").value,
-        visionUserPromptTemplate: document.getElementById("visionUserPromptTemplate").value
+        fortuneUserPromptTemplate: document.getElementById("fortuneUserPromptTemplate").value
       })
     });
     alert("프롬프트가 저장되었습니다.");

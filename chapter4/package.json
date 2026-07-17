@@ -1,7 +1,7 @@
 {
-  "name": "chapter4-saju-card-demo",
+  "name": "chapter4-ai-fortune-demo",
   "version": "1.0.0",
-  "description": "Chapter 4 Naver Cloud CLOVA Studio saju and tarot card demo",
+  "description": "Chapter 4 Naver Cloud CLOVA Studio fortune text demo",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chapter 4 AI Fortune & Tarot Studio</title>
+  <title>Chapter 4 AI Fortune Studio</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -19,13 +19,12 @@
 
       <nav class="nav">
         <button class="nav-link is-active" data-view="fortune" type="button">오늘의 사주</button>
-        <button class="nav-link" data-view="image" type="button">그림 생성 / 읽기</button>
         <button class="nav-link" data-view="admin" type="button">프롬프트 관리자</button>
       </nav>
 
       <section class="side-panel">
         <h2>안내</h2>
-        <p>공식 CLOVA Studio 문서의 Chat Completions v3를 기준으로 텍스트/비전 호출을 연결한 데모입니다.</p>
+        <p>공식 CLOVA Studio Chat Completions v3로 오늘의 운세 텍스트를 생성하는 데모입니다.</p>
         <div id="healthBadge" class="health-badge pending">Checking API</div>
       </section>
     </aside>
@@ -76,71 +75,15 @@
           </article>
 
           <article class="result-card">
+            <div id="fortuneLoading" class="fortune-loading" role="status" aria-live="polite" hidden>
+              <div class="loader-one" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </div>
+              <strong>운세를 불러오는 중...</strong>
+              <p>오늘의 별자리와 기운을 차분히 살펴보고 있어요.</p>
+            </div>
             <div id="fortuneEmpty" class="empty-box">생년월일시를 입력하면 오늘의 운세가 표시됩니다.</div>
             <div id="fortuneResult" class="fortune-result" hidden></div>
-          </article>
-        </div>
-      </section>
-
-      <section class="view" data-panel="image">
-        <div class="hero">
-          <span class="eyebrow">IMAGE STUDIO</span>
-          <h2>타로 카드 그림 생성 / 그림 읽기</h2>
-          <p>운세 결과를 기반으로 타로 카드풍 이미지를 만들고, 이미지 URL 또는 업로드 파일을 HCX-005 비전 모델로 읽을 수 있습니다.</p>
-        </div>
-
-        <div class="card-grid">
-          <article class="form-card">
-            <h3>카드 생성</h3>
-            <form id="cardForm" class="stack-form">
-              <label>카드의 기반이 될 운세 제목
-                <input id="cardTitleInput" type="text" placeholder="오늘의 별빛 흐름">
-              </label>
-              <label>운세 요약
-                <textarea id="cardSummaryInput" placeholder="오늘의 운세 요약을 입력하세요"></textarea>
-              </label>
-              <label>강점
-                <input id="cardStrengthInput" type="text" placeholder="차분한 집중력">
-              </label>
-              <label>주의점
-                <input id="cardCautionInput" type="text" placeholder="즉흥 결정 주의">
-              </label>
-              <label>행운색
-                <input id="cardColorInput" type="text" placeholder="민트 블루">
-              </label>
-              <label>행운방향
-                <input id="cardDirectionInput" type="text" placeholder="동남">
-              </label>
-              <button type="submit">타로 카드 만들기</button>
-            </form>
-          </article>
-
-          <article class="result-card">
-            <div id="cardPreviewEmpty" class="empty-box">운세를 불러오거나 직접 내용을 입력해 카드 이미지를 만드세요.</div>
-            <div id="cardPreview" hidden>
-              <img id="cardImage" alt="Tarot card preview">
-              <pre id="cardSpec"></pre>
-            </div>
-          </article>
-        </div>
-
-        <div class="card-grid">
-          <article class="form-card">
-            <h3>그림 읽기</h3>
-            <form id="visionForm" class="stack-form">
-              <label>이미지 URL
-                <input id="visionImageUrl" type="url" placeholder="https://example.com/image.png">
-              </label>
-              <label>또는 파일 업로드
-                <input id="visionFile" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp">
-              </label>
-              <button type="submit">그림 해석하기</button>
-            </form>
-          </article>
-
-          <article class="result-card">
-            <div id="visionEmpty" class="empty-box">이미지를 입력하면 분위기, 주요 요소, 타로식 해석을 보여줍니다.</div>
-            <pre id="visionResult" hidden></pre>
           </article>
         </div>
       </section>
@@ -149,7 +92,7 @@
         <div class="hero">
           <span class="eyebrow">PROMPT ADMIN</span>
           <h2>프롬프트 관리자</h2>
-          <p>운세, 카드, 이미지 해석에 쓰는 시스템 프롬프트와 사용자 템플릿을 수정할 수 있습니다.</p>
+          <p>오늘의 운세 생성에 쓰는 시스템 프롬프트와 사용자 템플릿을 수정할 수 있습니다.</p>
         </div>
 
         <article class="full-card">
@@ -161,10 +104,6 @@
           <form id="adminSaveForm" class="stack-form" hidden>
             <label>운세 시스템 프롬프트<textarea id="fortuneSystemPrompt"></textarea></label>
             <label>운세 사용자 템플릿<textarea id="fortuneUserPromptTemplate"></textarea></label>
-            <label>카드 시스템 프롬프트<textarea id="tarotSystemPrompt"></textarea></label>
-            <label>카드 사용자 템플릿<textarea id="tarotUserPromptTemplate"></textarea></label>
-            <label>비전 시스템 프롬프트<textarea id="visionSystemPrompt"></textarea></label>
-            <label>비전 사용자 템플릿<textarea id="visionUserPromptTemplate"></textarea></label>
             <button type="submit">프롬프트 저장</button>
           </form>
         </article>
