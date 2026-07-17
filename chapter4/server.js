@@ -236,6 +236,27 @@ function parseToolArguments(value) {
   }
 }
 
+function createSourceExcerpt(content, query) {
+  const text = String(content || "").replace(/\s+/g, " ").trim();
+  const tokens = tokenize(query);
+  const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+  const bestSentence = sentences
+    .map((sentence) => ({
+      sentence,
+      score: tokens.reduce((total, token) => total + (sentence.toLowerCase().includes(token) ? 1 : 0), 0)
+    }))
+    .sort((a, b) => b.score - a.score)[0]?.sentence || text;
+  return bestSentence.length > 280 ? `${bestSentence.slice(0, 277)}...` : bestSentence;
+}
+
+function normalizeRagCitations(answer, sources) {
+  const citationIndexes = new Map(sources.map((source, index) => [source.id, index + 1]));
+  return String(answer || "").replace(/<([a-zA-Z0-9_-]+)>([\s\S]*?)<\/\1>/g, (_, id, content) => {
+    const citationNumber = citationIndexes.get(id);
+    return citationNumber ? `${content} [${citationNumber}]` : content;
+  });
+}
+
 async function answerRagQuestion(clientMessages, systemPrompt) {
   const messages = [
     { role: "system", content: systemPrompt },
@@ -254,9 +275,10 @@ async function answerRagQuestion(clientMessages, systemPrompt) {
     const modelMessage = result.message || {};
     const toolCalls = Array.isArray(modelMessage.toolCalls) ? modelMessage.toolCalls : [];
     if (!toolCalls.length) {
+      const sources = [...sourceMap.values()];
       return {
-        answer: modelMessage.content || "검색 문서에서 답변을 찾지 못했습니다.",
-        sources: [...sourceMap.values()],
+        answer: normalizeRagCitations(modelMessage.content || "검색 문서에서 답변을 찾지 못했습니다.", sources),
+        sources,
         searchQueries,
         usage
       };
@@ -276,16 +298,29 @@ async function answerRagQuestion(clientMessages, systemPrompt) {
         searchQueries.push(query);
       }
       documents.forEach((document) => {
-        sourceMap.set(document.id, {
-          id: document.id,
-          title: document.title,
-          source: document.source
-        });
+        if (!sourceMap.has(document.id)) {
+          sourceMap.set(document.id, {
+            id: document.id,
+            title: document.title,
+            source: document.source,
+            excerpt: createSourceExcerpt(document.content, query),
+            query
+          });
+        }
       });
       messages.push({
         role: "tool",
         toolCallId: toolCall.id,
-        content: JSON.stringify({ query, documents })
+        content: JSON.stringify([
+          {
+            search_result: documents.map((document) => ({
+              id: document.id,
+              doc: document.content,
+              title: document.title,
+              url: document.source
+            }))
+          }
+        ])
       });
     }
   }
@@ -298,9 +333,15 @@ async function makeMockRagAnswer(question) {
   const context = documents[0];
   return {
     answer: context
-      ? `${context.content}\n\n데모 모드에서는 검색된 실습 문서를 그대로 요약해 보여줍니다.`
+      ? `${context.content} [1]\n\n데모 모드에서는 검색된 실습 문서를 그대로 요약해 보여줍니다.`
       : "관련된 실습 문서를 찾지 못했습니다. Chapter, 서버 역할 또는 설정 이름을 포함해 질문해 보세요.",
-    sources: documents.map(({ id, title, source }) => ({ id, title, source })),
+    sources: documents.map(({ id, title, source, content }) => ({
+      id,
+      title,
+      source,
+      excerpt: createSourceExcerpt(content, question),
+      query: question
+    })),
     searchQueries: [question],
     usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
   };

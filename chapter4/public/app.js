@@ -132,21 +132,46 @@ function createRagMessage(role, content, metadata = null) {
   label.textContent = role === "user" ? "You" : "RAG Assistant";
   const text = document.createElement("div");
   text.className = "rag-answer-text";
-  text.textContent = content;
+  const answerParts = String(content).split(/(\[\d+\])/g);
+  answerParts.forEach((part) => {
+    if (role === "assistant" && /^\[\d+\]$/.test(part)) {
+      const citation = document.createElement("span");
+      citation.className = "citation-marker";
+      citation.textContent = part;
+      text.append(citation);
+    } else {
+      text.append(document.createTextNode(part));
+    }
+  });
   body.append(label, text);
 
   if (metadata?.sources?.length) {
     const sources = document.createElement("div");
     sources.className = "rag-sources";
-    const sourceLabel = document.createElement("span");
+    const sourceLabel = document.createElement("strong");
+    sourceLabel.className = "rag-sources-title";
     sourceLabel.textContent = "참고한 문서";
     sources.append(sourceLabel);
-    metadata.sources.forEach((source) => {
-      const chip = document.createElement("span");
-      chip.className = "source-chip";
-      chip.textContent = source.title;
-      chip.title = source.source;
-      sources.append(chip);
+    metadata.sources.forEach((source, index) => {
+      const evidence = document.createElement("article");
+      evidence.className = "source-evidence";
+      const heading = document.createElement("div");
+      heading.className = "source-evidence-heading";
+      const number = document.createElement("span");
+      number.textContent = `[${index + 1}]`;
+      const title = document.createElement("strong");
+      title.textContent = source.title;
+      const path = document.createElement("small");
+      path.textContent = source.source;
+      heading.append(number, title, path);
+      evidence.append(heading);
+
+      if (source.excerpt) {
+        const excerpt = document.createElement("blockquote");
+        appendHighlightedExcerpt(excerpt, source.excerpt, source.query || "");
+        evidence.append(excerpt);
+      }
+      sources.append(evidence);
     });
     body.append(sources);
   }
@@ -167,6 +192,29 @@ function createRagMessage(role, content, metadata = null) {
   ragConversation.append(message);
   ragConversation.scrollTop = ragConversation.scrollHeight;
   return message;
+}
+
+function appendHighlightedExcerpt(container, excerpt, query) {
+  const ignored = new Set(["어떻게", "알려줘", "무엇", "대한", "관련", "방법", "하는", "에서", "으로"]);
+  const tokens = [...new Set((query.toLowerCase().match(/[가-힣a-z0-9]{2,}/g) || [])
+    .filter((token) => !ignored.has(token)))]
+    .sort((a, b) => b.length - a.length);
+  if (!tokens.length) {
+    container.textContent = excerpt;
+    return;
+  }
+
+  const escapedTokens = tokens.map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const pattern = new RegExp(`(${escapedTokens.join("|")})`, "gi");
+  String(excerpt).split(pattern).forEach((part) => {
+    if (tokens.includes(part.toLowerCase())) {
+      const mark = document.createElement("mark");
+      mark.textContent = part;
+      container.append(mark);
+    } else {
+      container.append(document.createTextNode(part));
+    }
+  });
 }
 
 function createRagLoading() {
