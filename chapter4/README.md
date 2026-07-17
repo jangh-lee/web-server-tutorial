@@ -1,18 +1,29 @@
-# Chapter 4. AI Fortune Studio
+# Chapter 4. AI Fortune & RAG Studio
 
 네이버 클라우드의 CLOVA Studio API를 이용해 다음 기능을 시연하는 데모입니다.
 
 - 사주/오늘의 운세 텍스트 생성
+- RAG Reasoning 기반 실습 문서 질의응답
+- 답변에 검색 출처와 토큰 사용량 표시
 - 운세 시스템 프롬프트 관리
+- RAG 시스템 프롬프트 관리
 - API 응답 대기 중 로딩 UI
 
 ## 구현 방향
 
-공식 Chat Completions v3 API를 호출해 생년월일시를 바탕으로 오늘의 운세를 JSON 형식으로 생성합니다.
+오늘의 운세는 공식 Chat Completions v3 API를 호출해 JSON 형식으로 생성합니다.
+
+RAG 질문은 다음 순서로 처리합니다.
+
+1. RAG Reasoning 모델이 질문을 분석하고 검색 도구 호출을 계획합니다.
+2. 서버가 [`data/rag-documents.json`](/Users/james/Documents/공모전/web-server-tutorial/chapter4/data/rag-documents.json)에서 관련 문서를 검색합니다.
+3. 검색 결과를 `tool` 메시지로 모델에 다시 전달합니다.
+4. 모델이 문서에 근거한 최종 답변과 출처를 생성합니다.
 
 ## 공식 문서
 
 - Chat Completions v3: [텍스트 및 이미지](https://api.ncloud-docs.com/docs/clovastudio-chatcompletionsv3)
+- RAG Reasoning: `POST /v1/api-tools/rag-reasoning`
 - CLOVA Studio 개요: [CLOVA Studio 개요](https://api.ncloud-docs.com/docs/ai-naver-clovastudio-summary)
 
 ## 폴더 구성
@@ -21,6 +32,7 @@
 - [public/index.html](/Users/james/Documents/공모전/web-server-tutorial/chapter4/public/index.html): 메인 UI
 - [public/app.js](/Users/james/Documents/공모전/web-server-tutorial/chapter4/public/app.js): 화면 로직
 - [data/prompt-config.json](/Users/james/Documents/공모전/web-server-tutorial/chapter4/data/prompt-config.json): 관리자 프롬프트 설정
+- [data/rag-documents.json](/Users/james/Documents/공모전/web-server-tutorial/chapter4/data/rag-documents.json): RAG 검색 대상 실습 문서
 - [install.sh](/Users/james/Documents/공모전/web-server-tutorial/chapter4/install.sh): Ubuntu 설치 스크립트
 
 ## 실행 방법
@@ -66,10 +78,31 @@ DEMO_MODE_IF_NO_KEY="true"
 - 양력/음력 선택
 - 오늘의 운세 텍스트 응답
 
-### 2. 프롬프트 관리자
+### 2. RAG 질문
+
+- GPT Studio 형태의 대화 UI
+- 예시 질문과 여러 차례 이어지는 대화
+- RAG Reasoning 검색 계획 및 로컬 문서 검색
+- 참고한 문서와 검색어, 토큰 사용량 표시
+
+### 3. 프롬프트 관리자
 
 - 운세 시스템 프롬프트
 - 운세 사용자 프롬프트 템플릿
+- RAG 시스템 프롬프트
+
+## RAG 문서 추가
+
+[`data/rag-documents.json`](/Users/james/Documents/공모전/web-server-tutorial/chapter4/data/rag-documents.json)에 다음 형식으로 문서를 추가한 뒤 서비스를 재시작합니다.
+
+```json
+{
+  "id": "unique-document-id",
+  "title": "화면에 표시할 문서 제목",
+  "source": "/문서/경로",
+  "content": "검색하고 답변 근거로 사용할 문서 내용"
+}
+```
 
 ## 참고
 

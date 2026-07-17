@@ -9,6 +9,7 @@ const app = express();
 const port = Number(process.env.PORT || 4100);
 const publicDir = path.join(__dirname, "public");
 const configPath = path.join(__dirname, "data", "prompt-config.json");
+const ragDocumentsPath = path.join(__dirname, "data", "rag-documents.json");
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(publicDir));
@@ -81,6 +82,165 @@ async function callClovaChat({ modelName, messages }) {
   return data.result.message.content;
 }
 
+async function callRagReasoning(messages) {
+  const apiKey = requireEnv("CLOVA_API_KEY");
+  const baseUrl = requireEnv("CLOVA_BASE_URL") || "https://clovastudio.stream.ntruss.com";
+  if (!apiKey) {
+    throw new Error("CLOVA_API_KEY is missing");
+  }
+
+  const response = await fetch(`${baseUrl}/v1/api-tools/rag-reasoning`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "X-NCP-CLOVASTUDIO-REQUEST-ID": `chapter4-rag-${Date.now()}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      messages,
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "tutorial_document_search",
+            description: "Web Server Tutorial 실습 문서에서 질문과 관련된 내용을 검색합니다. 질문을 여러 주제로 나누어야 하면 검색어를 나누어 호출합니다. 검색 결과에 없는 내용은 추측하지 않습니다.",
+            parameters: {
+              type: "object",
+              properties: {
+                query: {
+                  type: "string",
+                  description: "실습 문서에서 찾을 핵심 검색어"
+                }
+              },
+              required: ["query"]
+            }
+          }
+        }
+      ],
+      toolChoice: "auto",
+      topP: 0.8,
+      topK: 0,
+      maxTokens: 1024,
+      temperature: 0.5,
+      repetitionPenalty: 1.1,
+      stop: [],
+      seed: 0,
+      includeAiFilters: true
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok || data.status?.code !== "20000") {
+    throw new Error(data.status?.message || `RAG Reasoning request failed with status ${response.status}`);
+  }
+  return data.result;
+}
+
+function tokenize(value) {
+  const stopWords = new Set(["어떻게", "알려줘", "무엇", "대한", "관련", "방법", "하는", "에서", "으로"]);
+  return [...new Set((String(value).toLowerCase().match(/[가-힣a-z0-9]{2,}/g) || [])
+    .filter((token) => !stopWords.has(token)))];
+}
+
+async function searchTutorialDocuments(query) {
+  const documents = JSON.parse(await fs.readFile(ragDocumentsPath, "utf8"));
+  const tokens = tokenize(query);
+  const scored = documents.map((document) => {
+    const title = document.title.toLowerCase();
+    const content = document.content.toLowerCase();
+    const score = tokens.reduce((total, token) => {
+      const titleMatches = title.split(token).length - 1;
+      const contentMatches = content.split(token).length - 1;
+      return total + titleMatches * 4 + contentMatches;
+    }, 0);
+    return { ...document, score };
+  });
+
+  const matches = scored.filter((document) => document.score > 0).sort((a, b) => b.score - a.score);
+  return matches.slice(0, 3).map(({ score, ...document }) => document);
+}
+
+function parseToolArguments(value) {
+  if (value && typeof value === "object") {
+    return value;
+  }
+  try {
+    return JSON.parse(value || "{}");
+  } catch {
+    return {};
+  }
+}
+
+async function answerRagQuestion(clientMessages, systemPrompt) {
+  const messages = [
+    { role: "system", content: systemPrompt },
+    ...clientMessages
+  ];
+  const sourceMap = new Map();
+  const searchQueries = [];
+  const usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+
+  for (let step = 0; step < 4; step += 1) {
+    const result = await callRagReasoning(messages);
+    usage.promptTokens += result.usage?.promptTokens || 0;
+    usage.completionTokens += result.usage?.completionTokens || 0;
+    usage.totalTokens += result.usage?.totalTokens || 0;
+
+    const modelMessage = result.message || {};
+    const toolCalls = Array.isArray(modelMessage.toolCalls) ? modelMessage.toolCalls : [];
+    if (!toolCalls.length) {
+      return {
+        answer: modelMessage.content || "검색 문서에서 답변을 찾지 못했습니다.",
+        sources: [...sourceMap.values()],
+        searchQueries,
+        usage
+      };
+    }
+
+    messages.push({
+      role: "assistant",
+      content: modelMessage.content || "",
+      toolCalls
+    });
+
+    for (const toolCall of toolCalls) {
+      const args = parseToolArguments(toolCall.function?.arguments);
+      const query = String(args.query || "").trim();
+      const documents = query ? await searchTutorialDocuments(query) : [];
+      if (query) {
+        searchQueries.push(query);
+      }
+      documents.forEach((document) => {
+        sourceMap.set(document.id, {
+          id: document.id,
+          title: document.title,
+          source: document.source
+        });
+      });
+      messages.push({
+        role: "tool",
+        toolCallId: toolCall.id,
+        content: JSON.stringify({ query, documents })
+      });
+    }
+  }
+
+  throw new Error("RAG Reasoning exceeded the maximum search steps");
+}
+
+async function makeMockRagAnswer(question) {
+  const documents = await searchTutorialDocuments(question);
+  const context = documents[0];
+  return {
+    answer: context
+      ? `${context.content}\n\n데모 모드에서는 검색된 실습 문서를 그대로 요약해 보여줍니다.`
+      : "관련된 실습 문서를 찾지 못했습니다. Chapter, 서버 역할 또는 설정 이름을 포함해 질문해 보세요.",
+    sources: documents.map(({ id, title, source }) => ({ id, title, source })),
+    searchQueries: [question],
+    usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+  };
+}
+
 function makeMockFortune(payload) {
   return {
     title: "오늘의 별빛 흐름",
@@ -99,7 +259,7 @@ function makeMockFortune(payload) {
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
-    service: "chapter4-fortune-demo",
+    service: "chapter4-ai-studio-demo",
     demoMode: isDemoMode()
   });
 });
@@ -124,7 +284,8 @@ app.put("/api/admin/prompts", async (req, res, next) => {
 
     const nextConfig = {
       fortuneSystemPrompt: String(req.body.fortuneSystemPrompt || ""),
-      fortuneUserPromptTemplate: String(req.body.fortuneUserPromptTemplate || "")
+      fortuneUserPromptTemplate: String(req.body.fortuneUserPromptTemplate || ""),
+      ragSystemPrompt: String(req.body.ragSystemPrompt || "")
     };
 
     await writePromptConfig(nextConfig);
@@ -169,6 +330,30 @@ app.post("/api/fortune", async (req, res, next) => {
   }
 });
 
+app.post("/api/rag/chat", async (req, res, next) => {
+  try {
+    const messages = Array.isArray(req.body.messages) ? req.body.messages : [];
+    const safeMessages = messages
+      .filter((message) => ["user", "assistant"].includes(message?.role) && typeof message.content === "string")
+      .slice(-12)
+      .map((message) => ({ role: message.role, content: message.content.slice(0, 4000) }));
+    const lastUserMessage = [...safeMessages].reverse().find((message) => message.role === "user");
+    if (!lastUserMessage?.content.trim()) {
+      return res.status(400).json({ message: "A user question is required" });
+    }
+
+    if (isDemoMode()) {
+      return res.json({ ...(await makeMockRagAnswer(lastUserMessage.content)), source: "mock-rag" });
+    }
+
+    const prompts = await readPromptConfig();
+    const result = await answerRagQuestion(safeMessages, prompts.ragSystemPrompt);
+    res.json({ ...result, source: "clova-rag-reasoning" });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("*", (req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
@@ -179,5 +364,5 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(port, () => {
-  console.log(`Chapter 4 fortune demo running on http://localhost:${port}`);
+  console.log(`Chapter 4 AI Studio running on http://localhost:${port}`);
 });

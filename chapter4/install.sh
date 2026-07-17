@@ -38,7 +38,7 @@ npm install
 
 cat > "${SERVICE_FILE}" <<EOF
 [Unit]
-Description=Chapter 4 AI Fortune Demo
+Description=Chapter 4 AI Fortune and RAG Demo
 After=network.target
 
 [Service]
