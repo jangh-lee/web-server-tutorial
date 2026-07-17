@@ -20,6 +20,7 @@
       <nav class="nav">
         <button class="nav-link is-active" data-view="fortune" type="button">오늘의 사주</button>
         <button class="nav-link" data-view="rag" type="button">RAG 질문</button>
+        <button class="nav-link" data-view="documents" type="button">RAG 문서 관리</button>
         <button class="nav-link" data-view="admin" type="button">프롬프트 관리자</button>
       </nav>
 
@@ -122,6 +123,77 @@
               <button id="ragSubmitButton" type="submit" aria-label="질문 전송">전송</button>
             </div>
           </form>
+        </div>
+      </section>
+
+      <section class="view" data-panel="documents">
+        <div class="hero document-hero">
+          <div>
+            <span class="eyebrow">KNOWLEDGE BASE</span>
+            <h2>RAG 문서 관리</h2>
+            <p>검색에 사용할 문서를 추가하고 지식 베이스의 구성과 주요 키워드를 한눈에 확인합니다.</p>
+          </div>
+          <form id="documentAdminLoadForm" class="document-login-form">
+            <input id="documentAdminPassword" type="password" placeholder="관리자 비밀번호" required>
+            <button type="submit">문서 불러오기</button>
+          </form>
+        </div>
+
+        <div id="documentDashboard" class="document-dashboard" hidden>
+          <div class="knowledge-stats">
+            <article><span>등록 문서</span><strong id="documentCount">0</strong><small>documents</small></article>
+            <article><span>전체 분량</span><strong id="documentCharacters">0</strong><small>characters</small></article>
+            <article><span>핵심 키워드</span><strong id="documentKeywordCount">0</strong><small>topics</small></article>
+          </div>
+
+          <div class="knowledge-visual-grid">
+            <article class="knowledge-panel">
+              <div class="panel-heading">
+                <div><span class="eyebrow">DOCUMENT MAP</span><h3>지식 베이스 맵</h3></div>
+                <span class="live-indicator">검색 연결됨</span>
+              </div>
+              <div id="knowledgeMap" class="knowledge-map" aria-label="RAG 문서 관계 시각화"></div>
+            </article>
+
+            <article class="knowledge-panel">
+              <div class="panel-heading"><div><span class="eyebrow">TOP KEYWORDS</span><h3>검색 키워드</h3></div></div>
+              <div id="keywordCloud" class="keyword-cloud"></div>
+              <p class="visual-help">여러 문서에 함께 등장하는 키워드일수록 크게 표시됩니다.</p>
+            </article>
+          </div>
+
+          <div class="document-manager-grid">
+            <article class="document-list-panel">
+              <div class="panel-heading">
+                <div><span class="eyebrow">DOCUMENTS</span><h3>등록된 문서</h3></div>
+                <button id="newDocumentButton" class="secondary-button" type="button">+ 새 문서</button>
+              </div>
+              <div id="documentList" class="document-list"></div>
+            </article>
+
+            <article class="document-editor-panel">
+              <div class="panel-heading">
+                <div><span class="eyebrow">EDITOR</span><h3 id="documentEditorTitle">새 문서 추가</h3></div>
+                <span id="documentSaveStatus" class="save-status">작성 중</span>
+              </div>
+              <form id="documentForm" class="stack-form">
+                <label>문서 ID
+                  <input id="documentId" type="text" pattern="[a-z0-9][a-z0-9-]{1,79}" placeholder="example-document" required>
+                  <small>영문 소문자, 숫자, 하이픈만 사용할 수 있습니다.</small>
+                </label>
+                <label>문서 제목<input id="documentTitle" type="text" maxlength="120" placeholder="화면에 표시할 문서 제목" required></label>
+                <label>출처<input id="documentSource" type="text" maxlength="300" placeholder="/chapter4/README.md 또는 URL" required></label>
+                <label>검색할 문서 내용
+                  <textarea id="documentContent" class="document-content-input" maxlength="50000" placeholder="RAG 검색과 답변 근거로 사용할 내용을 입력하세요." required></textarea>
+                  <small><span id="documentContentLength">0</span> / 50,000자</small>
+                </label>
+                <div class="document-form-actions">
+                  <button id="deleteDocumentButton" class="danger-button" type="button" hidden>문서 삭제</button>
+                  <button id="saveDocumentButton" type="submit">문서 저장</button>
+                </div>
+              </form>
+            </article>
+          </div>
         </div>
       </section>
 

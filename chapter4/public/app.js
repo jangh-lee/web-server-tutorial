@@ -15,10 +15,30 @@ const ragConversation = document.getElementById("ragConversation");
 const ragWelcome = document.getElementById("ragWelcome");
 const newChatButton = document.getElementById("newChatButton");
 
+const documentAdminLoadForm = document.getElementById("documentAdminLoadForm");
+const documentAdminPassword = document.getElementById("documentAdminPassword");
+const documentDashboard = document.getElementById("documentDashboard");
+const documentList = document.getElementById("documentList");
+const knowledgeMap = document.getElementById("knowledgeMap");
+const keywordCloud = document.getElementById("keywordCloud");
+const documentForm = document.getElementById("documentForm");
+const documentId = document.getElementById("documentId");
+const documentTitle = document.getElementById("documentTitle");
+const documentSource = document.getElementById("documentSource");
+const documentContent = document.getElementById("documentContent");
+const documentContentLength = document.getElementById("documentContentLength");
+const documentEditorTitle = document.getElementById("documentEditorTitle");
+const documentSaveStatus = document.getElementById("documentSaveStatus");
+const newDocumentButton = document.getElementById("newDocumentButton");
+const deleteDocumentButton = document.getElementById("deleteDocumentButton");
+const saveDocumentButton = document.getElementById("saveDocumentButton");
+
 const adminLoadForm = document.getElementById("adminLoadForm");
 const adminSaveForm = document.getElementById("adminSaveForm");
 const adminPassword = document.getElementById("adminPassword");
 let ragMessages = [];
+let ragDocuments = [];
+let selectedDocumentId = null;
 
 function activateView(target) {
   navLinks.forEach((button) => {
@@ -218,6 +238,201 @@ newChatButton.addEventListener("click", () => {
   ragWelcome.hidden = false;
   ragPrompt.value = "";
   ragPrompt.focus();
+});
+
+function formatNumber(value) {
+  return new Intl.NumberFormat("ko-KR").format(value || 0);
+}
+
+function setDocumentEditor(document = null) {
+  selectedDocumentId = document?.id || null;
+  documentForm.reset();
+  documentId.value = document?.id || "";
+  documentId.disabled = Boolean(document);
+  documentTitle.value = document?.title || "";
+  documentSource.value = document?.source || "";
+  documentContent.value = document?.content || "";
+  documentContentLength.textContent = formatNumber(documentContent.value.length);
+  documentEditorTitle.textContent = document ? "문서 수정" : "새 문서 추가";
+  documentSaveStatus.textContent = document ? "저장됨" : "작성 중";
+  documentSaveStatus.className = `save-status ${document ? "saved" : ""}`;
+  deleteDocumentButton.hidden = !document;
+  renderDocumentList();
+  renderKnowledgeMap();
+}
+
+function renderDocumentList() {
+  documentList.replaceChildren();
+  ragDocuments.forEach((item, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `document-list-item ${item.id === selectedDocumentId ? "is-active" : ""}`;
+
+    const number = document.createElement("span");
+    number.className = "document-index";
+    number.textContent = String(index + 1).padStart(2, "0");
+    const copy = document.createElement("span");
+    copy.className = "document-list-copy";
+    const title = document.createElement("strong");
+    title.textContent = item.title;
+    const source = document.createElement("small");
+    source.textContent = item.source;
+    const size = document.createElement("span");
+    size.className = "document-size";
+    size.textContent = `${formatNumber(item.content.length)}자`;
+    copy.append(title, source);
+    button.append(number, copy, size);
+    button.addEventListener("click", () => setDocumentEditor(item));
+    documentList.append(button);
+  });
+}
+
+function renderKnowledgeMap() {
+  knowledgeMap.replaceChildren();
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 100 100");
+  svg.setAttribute("aria-hidden", "true");
+  knowledgeMap.append(svg);
+
+  const center = document.createElement("div");
+  center.className = "knowledge-center";
+  center.innerHTML = "<strong>RAG</strong><span>Knowledge</span>";
+  knowledgeMap.append(center);
+
+  ragDocuments.forEach((item, index) => {
+    const angle = (Math.PI * 2 * index) / Math.max(ragDocuments.length, 1) - Math.PI / 2;
+    const radiusX = ragDocuments.length > 7 ? 40 : 36;
+    const radiusY = ragDocuments.length > 7 ? 39 : 34;
+    const x = 50 + Math.cos(angle) * radiusX;
+    const y = 50 + Math.sin(angle) * radiusY;
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", "50");
+    line.setAttribute("y1", "50");
+    line.setAttribute("x2", String(x));
+    line.setAttribute("y2", String(y));
+    if (item.id === selectedDocumentId) {
+      line.classList.add("is-active");
+    }
+    svg.append(line);
+
+    const node = document.createElement("button");
+    node.type = "button";
+    node.className = `knowledge-node color-${index % 5} ${item.id === selectedDocumentId ? "is-active" : ""}`;
+    node.style.setProperty("--node-x", `${x}%`);
+    node.style.setProperty("--node-y", `${y}%`);
+    node.title = item.title;
+    const shortTitle = item.title.replace(/^Chapter \d+ - /, "");
+    node.textContent = shortTitle.length > 12 ? `${shortTitle.slice(0, 12)}...` : shortTitle;
+    node.addEventListener("click", () => setDocumentEditor(item));
+    knowledgeMap.append(node);
+  });
+}
+
+function renderKeywordCloud(keywords) {
+  keywordCloud.replaceChildren();
+  const maxCount = Math.max(...keywords.map((item) => item.count), 1);
+  keywords.forEach((item, index) => {
+    const keyword = document.createElement("span");
+    keyword.className = `keyword-tag tone-${index % 4}`;
+    keyword.style.setProperty("--keyword-scale", String(.8 + item.count / maxCount * .55));
+    keyword.textContent = item.keyword;
+    keyword.title = `${item.count}개 문서에서 발견`;
+    keywordCloud.append(keyword);
+  });
+}
+
+function renderDocumentDashboard(data) {
+  ragDocuments = data.documents;
+  document.getElementById("documentCount").textContent = formatNumber(data.stats.totalDocuments);
+  document.getElementById("documentCharacters").textContent = formatNumber(data.stats.totalCharacters);
+  document.getElementById("documentKeywordCount").textContent = formatNumber(data.stats.keywords.length);
+  renderKeywordCloud(data.stats.keywords);
+  const selected = ragDocuments.find((document) => document.id === selectedDocumentId) || null;
+  if (selected) {
+    setDocumentEditor(selected);
+  } else {
+    setDocumentEditor(null);
+  }
+  documentDashboard.hidden = false;
+}
+
+async function loadRagDocuments() {
+  const password = documentAdminPassword.value;
+  const data = await requestJson(`/api/admin/rag-documents?password=${encodeURIComponent(password)}`);
+  renderDocumentDashboard(data);
+}
+
+documentAdminLoadForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    await loadRagDocuments();
+  } catch (error) {
+    alert(error.message);
+  }
+});
+
+newDocumentButton.addEventListener("click", () => {
+  setDocumentEditor(null);
+  documentId.focus();
+});
+
+documentForm.addEventListener("input", () => {
+  documentContentLength.textContent = formatNumber(documentContent.value.length);
+  documentSaveStatus.textContent = "수정됨";
+  documentSaveStatus.className = "save-status changed";
+});
+
+documentForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  saveDocumentButton.disabled = true;
+  saveDocumentButton.textContent = "저장 중...";
+  const payload = {
+    password: documentAdminPassword.value,
+    document: {
+      id: documentId.value,
+      title: documentTitle.value,
+      source: documentSource.value,
+      content: documentContent.value
+    }
+  };
+
+  try {
+    const url = selectedDocumentId
+      ? `/api/admin/rag-documents/${encodeURIComponent(selectedDocumentId)}`
+      : "/api/admin/rag-documents";
+    const data = await requestJson(url, {
+      method: selectedDocumentId ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    selectedDocumentId = data.document.id;
+    await loadRagDocuments();
+    documentSaveStatus.textContent = "저장됨";
+    documentSaveStatus.className = "save-status saved";
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    saveDocumentButton.disabled = false;
+    saveDocumentButton.textContent = "문서 저장";
+  }
+});
+
+deleteDocumentButton.addEventListener("click", async () => {
+  if (!selectedDocumentId || !window.confirm("이 문서를 RAG 지식 베이스에서 삭제할까요?")) {
+    return;
+  }
+  try {
+    await requestJson(`/api/admin/rag-documents/${encodeURIComponent(selectedDocumentId)}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: documentAdminPassword.value })
+    });
+    selectedDocumentId = null;
+    await loadRagDocuments();
+  } catch (error) {
+    alert(error.message);
+  }
 });
 
 adminLoadForm.addEventListener("submit", async (event) => {

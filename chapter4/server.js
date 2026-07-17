@@ -32,6 +32,50 @@ async function writePromptConfig(data) {
   await fs.writeFile(configPath, JSON.stringify(data, null, 2));
 }
 
+async function readRagDocuments() {
+  const raw = await fs.readFile(ragDocumentsPath, "utf8");
+  return JSON.parse(raw);
+}
+
+async function writeRagDocuments(documents) {
+  const temporaryPath = `${ragDocumentsPath}.tmp`;
+  await fs.writeFile(temporaryPath, `${JSON.stringify(documents, null, 2)}\n`);
+  await fs.rename(temporaryPath, ragDocumentsPath);
+}
+
+function requireAdminPassword(value) {
+  return value === requireEnv("ADMIN_PASSWORD");
+}
+
+function createHttpError(statusCode, message) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function validateRagDocument(input, fixedId = "") {
+  const document = {
+    id: String(fixedId || input?.id || "").trim(),
+    title: String(input?.title || "").trim(),
+    source: String(input?.source || "").trim(),
+    content: String(input?.content || "").trim()
+  };
+
+  if (!/^[a-z0-9][a-z0-9-]{1,79}$/.test(document.id)) {
+    throw createHttpError(400, "문서 ID는 영문 소문자, 숫자, 하이픈으로 2~80자까지 입력하세요.");
+  }
+  if (!document.title || document.title.length > 120) {
+    throw createHttpError(400, "문서 제목은 1~120자로 입력하세요.");
+  }
+  if (!document.source || document.source.length > 300) {
+    throw createHttpError(400, "출처는 1~300자로 입력하세요.");
+  }
+  if (!document.content || document.content.length > 50000) {
+    throw createHttpError(400, "문서 내용은 1~50,000자로 입력하세요.");
+  }
+  return document;
+}
+
 function applyTemplate(template, values) {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => String(values[key] ?? ""));
 }
@@ -143,7 +187,7 @@ function tokenize(value) {
 }
 
 async function searchTutorialDocuments(query) {
-  const documents = JSON.parse(await fs.readFile(ragDocumentsPath, "utf8"));
+  const documents = await readRagDocuments();
   const tokens = tokenize(query);
   const scored = documents.map((document) => {
     const title = document.title.toLowerCase();
@@ -158,6 +202,27 @@ async function searchTutorialDocuments(query) {
 
   const matches = scored.filter((document) => document.score > 0).sort((a, b) => b.score - a.score);
   return matches.slice(0, 3).map(({ score, ...document }) => document);
+}
+
+function summarizeRagDocuments(documents) {
+  const ignored = new Set(["chapter", "실습", "서버", "사용", "한다", "있다", "대한", "관련", "문서"]);
+  const frequencies = new Map();
+  documents.forEach((document) => {
+    tokenize(`${document.title} ${document.content}`).forEach((token) => {
+      if (!ignored.has(token)) {
+        frequencies.set(token, (frequencies.get(token) || 0) + 1);
+      }
+    });
+  });
+
+  return {
+    totalDocuments: documents.length,
+    totalCharacters: documents.reduce((total, document) => total + document.content.length, 0),
+    keywords: [...frequencies.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko"))
+      .slice(0, 12)
+      .map(([keyword, count]) => ({ keyword, count }))
+  };
 }
 
 function parseToolArguments(value) {
@@ -295,6 +360,72 @@ app.put("/api/admin/prompts", async (req, res, next) => {
   }
 });
 
+app.get("/api/admin/rag-documents", async (req, res, next) => {
+  try {
+    if (!requireAdminPassword(req.query.password)) {
+      return res.status(403).json({ message: "Invalid admin password" });
+    }
+    const documents = await readRagDocuments();
+    res.json({ documents, stats: summarizeRagDocuments(documents) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/admin/rag-documents", async (req, res, next) => {
+  try {
+    if (!requireAdminPassword(req.body.password)) {
+      return res.status(403).json({ message: "Invalid admin password" });
+    }
+    const documents = await readRagDocuments();
+    const document = validateRagDocument(req.body.document);
+    if (documents.some((item) => item.id === document.id)) {
+      throw createHttpError(409, "이미 사용 중인 문서 ID입니다.");
+    }
+    documents.push(document);
+    await writeRagDocuments(documents);
+    res.status(201).json({ document, stats: summarizeRagDocuments(documents) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put("/api/admin/rag-documents/:id", async (req, res, next) => {
+  try {
+    if (!requireAdminPassword(req.body.password)) {
+      return res.status(403).json({ message: "Invalid admin password" });
+    }
+    const documents = await readRagDocuments();
+    const index = documents.findIndex((item) => item.id === req.params.id);
+    if (index < 0) {
+      throw createHttpError(404, "문서를 찾을 수 없습니다.");
+    }
+    const document = validateRagDocument(req.body.document, req.params.id);
+    documents[index] = document;
+    await writeRagDocuments(documents);
+    res.json({ document, stats: summarizeRagDocuments(documents) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/admin/rag-documents/:id", async (req, res, next) => {
+  try {
+    if (!requireAdminPassword(req.body.password)) {
+      return res.status(403).json({ message: "Invalid admin password" });
+    }
+    const documents = await readRagDocuments();
+    const nextDocuments = documents.filter((item) => item.id !== req.params.id);
+    if (nextDocuments.length === documents.length) {
+      throw createHttpError(404, "문서를 찾을 수 없습니다.");
+    }
+    await writeRagDocuments(nextDocuments);
+    res.json({ status: "deleted", stats: summarizeRagDocuments(nextDocuments) });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/fortune", async (req, res, next) => {
   try {
     const payload = {
@@ -360,7 +491,7 @@ app.get("*", (req, res) => {
 
 app.use((error, req, res, next) => {
   console.error(error);
-  res.status(500).json({ message: error.message || "Internal server error" });
+  res.status(error.statusCode || 500).json({ message: error.message || "Internal server error" });
 });
 
 app.listen(port, () => {

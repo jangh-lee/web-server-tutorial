@@ -5,6 +5,8 @@
 - 사주/오늘의 운세 텍스트 생성
 - RAG Reasoning 기반 실습 문서 질의응답
 - 답변에 검색 출처와 토큰 사용량 표시
+- RAG 문서 추가·수정·삭제 관리 화면
+- 문서 관계도와 핵심 키워드 시각화
 - 운세 시스템 프롬프트 관리
 - RAG 시스템 프롬프트 관리
 - API 응답 대기 중 로딩 UI
@@ -85,15 +87,36 @@ DEMO_MODE_IF_NO_KEY="true"
 - RAG Reasoning 검색 계획 및 로컬 문서 검색
 - 참고한 문서와 검색어, 토큰 사용량 표시
 
-### 3. 프롬프트 관리자
+### 3. RAG 문서 관리
+
+- `ADMIN_PASSWORD`로 문서 관리 화면 접속
+- 문서 ID, 제목, 출처, 검색 본문 추가·수정·삭제
+- 등록 문서 수, 전체 문자 수, 핵심 키워드 통계
+- RAG와 문서의 연결 관계를 지식 맵으로 시각화
+- 여러 문서에 함께 등장하는 검색 키워드를 크기별로 표시
+
+### 4. 프롬프트 관리자
 
 - 운세 시스템 프롬프트
 - 운세 사용자 프롬프트 템플릿
 - RAG 시스템 프롬프트
 
-## RAG 문서 추가
+## RAG 문서 관리
 
-[`data/rag-documents.json`](/Users/james/Documents/공모전/web-server-tutorial/chapter4/data/rag-documents.json)에 다음 형식으로 문서를 추가한 뒤 서비스를 재시작합니다.
+사이드바의 `RAG 문서 관리`로 이동해 `.env`의 `ADMIN_PASSWORD`를 입력하면 문서를 화면에서 관리할 수 있습니다. 저장된 내용은 즉시 RAG 검색에 반영되며 별도 서비스 재시작은 필요하지 않습니다.
+
+관리 API는 다음과 같습니다.
+
+| Method | Path | 설명 |
+| --- | --- | --- |
+| `GET` | `/api/admin/rag-documents` | 문서, 통계, 키워드 조회 |
+| `POST` | `/api/admin/rag-documents` | 새 문서 추가 |
+| `PUT` | `/api/admin/rag-documents/:id` | 기존 문서 수정 |
+| `DELETE` | `/api/admin/rag-documents/:id` | 문서 삭제 |
+
+파일을 직접 관리해야 하는 경우에는 다음 형식을 사용합니다.
+
+[`data/rag-documents.json`](/Users/james/Documents/공모전/web-server-tutorial/chapter4/data/rag-documents.json)에 다음 형식으로 문서를 추가합니다.
 
 ```json
 {
