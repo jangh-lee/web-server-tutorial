@@ -1,0 +1,13 @@
+{
+  "name": "chapter4-saju-card-demo",
+  "version": "1.0.0",
+  "description": "Chapter 4 Naver Cloud CLOVA Studio saju and tarot card demo",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2"
+  }
+}

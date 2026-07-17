@@ -4,3 +4,5 @@ chapter3/backend/app/node_modules
 chapter3/web/.env
 chapter3/backend/.env
 chapter3/db/.env
+chapter4/node_modules
+chapter4/.env

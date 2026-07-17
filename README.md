@@ -52,8 +52,21 @@ npm start
 - 비로그인 게시글 작성/삭제 게시판
 - ACG와 네트워크 구성 가이드
 
+## Chapter 4. AI Fortune & Tarot Studio
+
+[`chapter4`](/Users/james/Documents/공모전/web-server-tutorial/chapter4)는 네이버 클라우드 CLOVA Studio API 기반 AI 데모입니다.
+
+포함 내용:
+
+- 사주/오늘의 운세 텍스트 생성
+- 타로 카드풍 SVG 이미지 생성
+- 이미지 읽기(비전 모델)
+- 프롬프트 관리자 화면
+- Ubuntu 설치 스크립트
+
 ## 추천 흐름
 
 1. `chapter1`에서 API와 Postman CRUD 흐름을 익힙니다.
 2. `chapter2`에서 여러 서버 노드를 띄운 뒤 로드밸런서 분산을 확인합니다.
 3. `chapter3`에서 웹, 백엔드, DB를 나눠 3계층 구조를 실습합니다.
+4. `chapter4`에서 AI 모델 호출과 프롬프트 관리 데모를 실습합니다.
